@@ -1,0 +1,18 @@
+service: lambda-invoke
+
+provider:
+  name: aws
+  region: us-east-1
+  versionFunctions: false
+
+plugins:
+  - serverless-offline
+
+functions:
+  hello:
+    runtime: go1.x
+    handler: main.go
+    events:
+      - http:
+          method: get
+          path: test-handler

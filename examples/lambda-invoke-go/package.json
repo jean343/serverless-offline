@@ -1,0 +1,17 @@
+{
+  "name": "lambda-invoke-go-example",
+  "version": "1.0.0",
+  "main": "handler.js",
+  "scripts": {
+    "start": "serverless offline start"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.758.0"
+  },
+  "devDependencies": {
+    "serverless": "^2.2.0",
+    "serverless-offline": "link:../../"
+  }
+}

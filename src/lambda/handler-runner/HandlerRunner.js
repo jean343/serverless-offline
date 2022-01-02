@@ -5,6 +5,7 @@ import {
   supportedPython,
   supportedRuby,
   supportedJava,
+  supportedGo,
 } from '../../config/index.js'
 import { satisfiesVersionRange } from '../../utils/index.js'
 
@@ -144,6 +145,11 @@ export default class HandlerRunner {
         allowCache,
         this.v3Utils,
       )
+    }
+
+    if (supportedGo.has(runtime)) {
+      const { default: GoRunner } = await import('./go-runner/GoRunner.js')
+      return new GoRunner(this.#funOptions, this.#env, allowCache, this.v3Utils)
     }
 
     // TODO FIXME
