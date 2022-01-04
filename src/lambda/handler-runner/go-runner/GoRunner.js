@@ -1,36 +1,29 @@
-import { EOL, platform } from 'os'
+import { join } from 'path'
 import { spawn } from 'child_process'
+import chokidar from 'chokidar'
 import { Server } from './server'
-
-const { parse, stringify } = JSON
-const { cwd } = process
-const { has } = Reflect
 
 export default class GoRunner {
   #env = null
+  #functionKey = null
   #codeDir = null
   #handlerName = null
   #handlerPath = null
-  #runtime = null
-  #allowCache = false
   #server = false
+  #watcher = null
+  #command = ''
 
-  constructor(funOptions, env, allowCache, v3Utils) {
-    const { codeDir, handlerName, handlerPath, runtime } = funOptions
+  constructor(funOptions, env, v3Utils) {
+    const { functionKey, codeDir, handlerName, handlerPath, binDir } =
+      funOptions
 
+    this.#functionKey = functionKey
     this.#env = env
     this.#codeDir = codeDir
     this.#handlerName = handlerName
     this.#handlerPath = handlerPath
-    this.#runtime = platform() === 'win32' ? 'python.exe' : runtime
-    this.#allowCache = allowCache
-    this.#server = new Server({
-      port: 5001,
-      function: {
-        id: '',
-        handler: '',
-      },
-    })
+    this.#server = new Server({ port: 5001 })
+    this.#command = join(binDir, 'out.exe')
     this.#server.listen()
 
     if (v3Utils) {
@@ -39,46 +32,34 @@ export default class GoRunner {
       this.writeText = v3Utils.writeText
       this.v3Utils = v3Utils
     }
+
+    this.#watcher = chokidar
+      .watch(join(this.#codeDir, '**/*.go'), {
+        persistent: true,
+        ignoreInitial: true,
+        followSymlinks: false,
+        disableGlobbing: false,
+        awaitWriteFinish: {
+          pollInterval: 100,
+          stabilityThreshold: 20,
+        },
+      })
+      .on('all', this.cleanup)
+      .on('error', (error) => console.info(`Watch ${error}`))
+      .on('ready', () => {
+        console.debug(`Watcher ready...`)
+      })
   }
 
-  // () => void
-  cleanup() {
-    // this.handlerProcess.kill()
-  }
-
-  _parsePayload(value) {
-    let payload
-
-    for (const item of value.split(EOL)) {
-      let json
-
-      // first check if it's JSON
-      try {
-        json = parse(item)
-        // nope, it's not JSON
-      } catch (err) {
-        // no-op
-      }
-
-      // now let's see if we have a property __offline_payload__
-      if (
-        json &&
-        typeof json === 'object' &&
-        has(json, '__offline_payload__')
-      ) {
-        payload = json.__offline_payload__
-        // everything else is print(), logging, ...
-      } else if (this.log) {
-        this.log.notice(item)
-      } else {
-        console.log(item)
-      }
-    }
-
-    return payload
+  cleanup = async () => {
+    return this.#server.setWarm(this.#functionKey, async () => {
+      await this.#server.drain({ id: this.#functionKey })
+      await this.build()
+    })
   }
 
   runAsync(cwd, cmd) {
+    console.log(cmd)
     const proc = spawn(cmd.command, cmd.args, {
       env: {
         ...cmd.env,
@@ -99,41 +80,37 @@ export default class GoRunner {
     })
   }
 
-  async run(event, context) {
-    const inputEvent = stringify({
-      context,
-      event,
-      allowCache: this.#allowCache,
+  build = () => {
+    return this.runAsync(this.#codeDir, {
+      command: 'go',
+      args: [
+        'build',
+        '-ldflags',
+        '-s -w',
+        '-o',
+        this.#command,
+        `${this.#handlerPath}.${this.#handlerName}`,
+      ],
+      env: this.#env,
     })
+  }
 
+  resolve = () => {
+    return {
+      run: {
+        command: this.#command,
+        args: [],
+        env: {},
+      },
+    }
+  }
+
+  async run(event, context) {
     const { data } = await this.#server.trigger({
       function: {
-        build: () => {
-          return this.runAsync(this.#codeDir, {
-            command: 'go',
-            args: [
-              'build',
-              '-ldflags',
-              '-s -w',
-              '-o',
-              'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
-              `${this.#handlerPath}.${this.#handlerName}`,
-            ],
-            env: {},
-          })
-        },
-        resolve: (runtime) => {
-          return {
-            run: {
-              command:
-                'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
-              args: [],
-              env: {},
-            },
-          }
-        },
-        id: 'id',
-        handler: '',
+        build: this.build,
+        resolve: this.resolve,
+        id: this.#functionKey,
       },
       payload: { event, context, deadline: new Date().getTime() + 900000 },
     })

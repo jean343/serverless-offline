@@ -114,6 +114,13 @@ export default class LambdaFunction {
       handler,
       handlerName,
       codeDir: this.#codeDir,
+      binDir: join(
+        _servicePath,
+        '.serverless-offline',
+        'services',
+        service.service,
+        functionKey,
+      ),
       handlerPath: resolve(this.#codeDir, handlerPath),
       runtime,
       serverlessPath,

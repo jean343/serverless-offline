@@ -35,7 +35,7 @@ export class Server {
           'Sending next payload',
           payload.context.awsRequestId,
           req.params.fun,
-          payload.event,
+          // payload.event,
         )
         res.set({
           'Lambda-Runtime-Aws-Request-Id': payload.context.awsRequestId,
@@ -174,6 +174,9 @@ export class Server {
     delete pool.requests[request]
     r(response)
   }
+  setWarm(id, promise) {
+    return (this.warm[id] = promise())
+  }
   isWarm(id) {
     return this.warm[id]
   }
@@ -182,21 +185,23 @@ export class Server {
     const pool = this.pool(opts.function.id)
     // Check if invoked before
     if (!this.isWarm(opts.function.id)) {
-      console.debug('First build...')
-      const results = await opts.function.build()
-      if (results && results.length > 0) {
-        return {
-          type: 'failure',
-          error: {
-            errorType: 'build_failure',
-            errorMessage: `The function ${opts.function.handler} failed to build`,
-            stackTrace: [],
-          },
+      this.setWarm(opts.function.id, async () => {
+        console.debug('First build...')
+        const results = await opts.function.build()
+        if (results && results.length > 0) {
+          return {
+            type: 'failure',
+            error: {
+              errorType: 'build_failure',
+              errorMessage: `The function ${opts.function.handler} failed to build`,
+              stackTrace: [],
+            },
+          }
         }
-      }
-      this.warm[opts.function.id] = true
-      console.debug('First build finished')
+        console.debug('First build finished')
+      })
     }
+    await this.isWarm(opts.function.id)
     return new Promise((resolve) => {
       pool.requests[opts.payload.context.awsRequestId] = resolve
       const [key] = Object.keys(pool.waiting)
@@ -222,7 +227,6 @@ export class Server {
       const proc = spawn(instructions.run.command, instructions.run.args, {
         env,
       })
-      proc.stdout.on('data', (d) => console.log(d.toString()))
       proc.stderr.on('data', (d) => console.error(d.toString()))
       proc.on('exit', () => {
         pool.processes = pool.processes.filter((p) => p !== proc)
