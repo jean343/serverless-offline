@@ -9,7 +9,7 @@ export default class GoRunner {
   #codeDir = null
   #handlerName = null
   #handlerPath = null
-  #server = false
+  static server = false
   #watcher = null
   #command = ''
 
@@ -22,9 +22,11 @@ export default class GoRunner {
     this.#codeDir = codeDir
     this.#handlerName = handlerName
     this.#handlerPath = handlerPath
-    this.#server = new Server({ port: 5001 })
     this.#command = join(binDir, 'out.exe')
-    this.#server.listen()
+    if(!GoRunner.server){
+      GoRunner.server = new Server({ port: 5001 })
+      GoRunner.server.listen()
+    }
 
     if (v3Utils) {
       this.log = v3Utils.log
@@ -52,8 +54,8 @@ export default class GoRunner {
   }
 
   cleanup = async () => {
-    return this.#server.setWarm(this.#functionKey, async () => {
-      await this.#server.drain({ id: this.#functionKey })
+    return GoRunner.server.setWarm(this.#functionKey, async () => {
+      await GoRunner.server.drain({ id: this.#functionKey })
       await this.build()
     })
   }
@@ -106,7 +108,7 @@ export default class GoRunner {
   }
 
   async run(event, context) {
-    const { data } = await this.#server.trigger({
+    const { data } = await GoRunner.server.trigger({
       function: {
         build: this.build,
         resolve: this.resolve,
