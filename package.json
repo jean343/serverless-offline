@@ -204,8 +204,10 @@
     "aws-sdk": "^2.1036.0",
     "boxen": "^5.1.2",
     "chalk": "^4.1.2",
+    "cross-spawn": "^7.0.3",
     "cuid": "^2.1.8",
     "execa": "^5.1.1",
+    "express": "^4.17.2",
     "extend": "^3.0.2",
     "fs-extra": "^9.1.0",
     "java-invoke-local": "0.0.6",
@@ -225,6 +227,7 @@
     "portfinder": "^1.0.28",
     "semver": "^7.3.5",
     "update-notifier": "^5.1.0",
+    "uuid": "^8.3.2",
     "velocityjs": "^2.0.5",
     "ws": "^7.5.6"
   },
