@@ -16,7 +16,6 @@ export default class GoRunner {
   #server = false
 
   constructor(funOptions, env, allowCache, v3Utils) {
-    console.log(funOptions)
     const { codeDir, handlerName, handlerPath, runtime } = funOptions
 
     this.#env = env
@@ -40,35 +39,6 @@ export default class GoRunner {
       this.writeText = v3Utils.writeText
       this.v3Utils = v3Utils
     }
-
-    // if (process.env.VIRTUAL_ENV) {
-    //   const runtimeDir = platform() === 'win32' ? 'Scripts' : 'bin'
-    //   process.env.PATH = [
-    //     join(process.env.VIRTUAL_ENV, runtimeDir),
-    //     delimiter,
-    //     process.env.PATH,
-    //   ].join('')
-    // }
-
-    // const [pythonExecutable] = this.#runtime.split('.')
-
-    // this.handlerProcess = spawn(
-    //   pythonExecutable,
-    //   [
-    //     '-u',
-    //     resolve(__dirname, 'invoke.py'),
-    //     relative(cwd(), this.#handlerPath),
-    //     this.#handlerName,
-    //   ],
-    //   {
-    //     env: extend(process.env, this.#env),
-    //     shell: true,
-    //   },
-    // )
-    //
-    // this.handlerProcess.stdout.readline = readline.createInterface({
-    //   input: this.handlerProcess.stdout,
-    // })
   }
 
   // () => void
@@ -129,101 +99,44 @@ export default class GoRunner {
     })
   }
 
-  // invokeLocalPython, loosely based on:
-  // https://github.com/serverless/serverless/blob/v1.50.0/lib/plugins/aws/invokeLocal/index.js#L410
-  // invoke.py, based on:
-  // https://github.com/serverless/serverless/blob/v1.50.0/lib/plugins/aws/invokeLocal/invoke.py
   async run(event, context) {
-    // console.log('event', event)
-    // console.log('context', context)
-    // return new Promise(async (accept, reject) => {
     const inputEvent = stringify({
       context,
       event,
       allowCache: this.#allowCache,
     })
 
-    // const artifact = State.Function.artifactsPath(opts.root, opts.id);
-    // const target = path.join(artifact, "handler");
-
-    // const full = path.join(opts.srcPath, opts.handler);
-    // const isDir = fs.lstatSync(full).isDirectory();
-    // const input = isDir ? path.join(opts.handler, "main.go") : opts.handler;
-    const build = {
-      command: 'go',
-      args: [
-        'build',
-        '-ldflags',
-        '-s -w',
-        '-o',
-        'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
-        `${this.#handlerPath}.${this.#handlerName}`,
-      ],
-      env: {},
-    }
-    // await this.runAsync(this.#codeDir, build)
-
-    // console.log(
-    //   await this.runAsync(this.#codeDir, {
-    //     command:
-    //       'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
-    //     args: [],
-    //     env: {
-    //       // _LAMBDA_SERVER_PORT
-    //       AWS_LAMBDA_RUNTIME_API: 'localhost:5001',
-    //     },
-    //   }),
-    // )
-
-    return await this.#server.trigger({
+    const { data } = await this.#server.trigger({
       function: {
-        build: () => {},
+        build: () => {
+          return this.runAsync(this.#codeDir, {
+            command: 'go',
+            args: [
+              'build',
+              '-ldflags',
+              '-s -w',
+              '-o',
+              'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
+              `${this.#handlerPath}.${this.#handlerName}`,
+            ],
+            env: {},
+          })
+        },
         resolve: (runtime) => {
           return {
             run: {
-              command:'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
-              args:[],
-              env: {}
-            }
+              command:
+                'D:\\Sites\\serverless-offline\\src\\lambda\\handler-runner\\go-runner\\out.exe',
+              args: [],
+              env: {},
+            },
           }
         },
-        id: 'jpid',
+        id: 'id',
         handler: '',
       },
-      payload: { event,context ,deadline:new Date().getTime()+900000},
+      payload: { event, context, deadline: new Date().getTime() + 900000 },
     })
-
-    // const onErr = (data) => {
-    //   // TODO
-    //
-    //   if (this.log) {
-    //     this.log.notice(data.toString())
-    //   } else {
-    //     console.log(data.toString())
-    //   }
-    // }
-    //
-    // const onLine = (line) => {
-    //   try {
-    //     const parsed = this._parsePayload(line.toString())
-    //     if (parsed) {
-    //       this.handlerProcess.stdout.readline.removeListener('line', onLine)
-    //       this.handlerProcess.stderr.removeListener('data', onErr)
-    // return accept({})
-    //     }
-    //     return null
-    //   } catch (err) {
-    //     return reject(err)
-    //   }
-    // }
-    //
-    // this.handlerProcess.stdout.readline.on('line', onLine)
-    // this.handlerProcess.stderr.on('data', onErr)
-    //
-    // process.nextTick(() => {
-    //   this.handlerProcess.stdin.write(input)
-    //   this.handlerProcess.stdin.write('\n')
-    // })
-    // })
+    return data
   }
 }

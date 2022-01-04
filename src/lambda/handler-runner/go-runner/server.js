@@ -4,32 +4,12 @@ import { v4 } from 'uuid'
 import https from 'https'
 import url from 'url'
 
-// import { Handler } from './handler'
-
 const API_VERSION = '2018-06-01'
-class EventDelegate {
-  constructor() {
-    this.handlers = []
-  }
-  add(handler) {
-    this.handlers.push(handler)
-    return handler
-  }
-  remove(handler) {
-    this.handlers = this.handlers.filter((h) => h !== handler)
-  }
-  trigger(input) {
-    for (const h of this.handlers) {
-      h(input)
-    }
-  }
-}
+
 export class Server {
   constructor(opts) {
     this.pools = {}
     this.lastRequest = {}
-    this.onStdOut = new EventDelegate()
-    this.onStdErr = new EventDelegate()
     this.warm = {}
     this.app = express()
     this.app.use(
@@ -174,9 +154,6 @@ export class Server {
       pool.waiting[proc] = resolve
     })
   }
-  async invoke(opts) {
-    return this.trigger(opts)
-  }
   async drain(opts) {
     const fun = Server.generateFunctionID(opts)
     console.debug('Draining function', fun)
@@ -245,20 +222,8 @@ export class Server {
       const proc = spawn(instructions.run.command, instructions.run.args, {
         env,
       })
-      proc.stdout.on('data', (data) => {
-        this.onStdOut.trigger({
-          data: data.toString(),
-          funcId: opts.function.id,
-          requestId: this.lastRequest[id],
-        })
-      })
-      proc.stderr.on('data', (data) => {
-        this.onStdErr.trigger({
-          data: data.toString(),
-          funcId: opts.function.id,
-          requestId: this.lastRequest[id],
-        })
-      })
+      proc.stdout.on('data', (d) => console.log(d.toString()))
+      proc.stderr.on('data', (d) => console.error(d.toString()))
       proc.on('exit', () => {
         pool.processes = pool.processes.filter((p) => p !== proc)
         delete pool.waiting[id]
