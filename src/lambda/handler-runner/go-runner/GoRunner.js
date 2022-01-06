@@ -1,8 +1,9 @@
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { spawn } from 'child_process'
 import chokidar from 'chokidar'
 import { Server } from './server'
 
+// https://github.com/serverless-stack/serverless-stack/blob/master/packages/core/src/runtime/handler/go.ts
 export default class GoRunner {
   #env = null
   #functionKey = null
@@ -23,7 +24,7 @@ export default class GoRunner {
     this.#handlerName = handlerName
     this.#handlerPath = handlerPath
     this.#command = join(binDir, 'out.exe')
-    if(!GoRunner.server){
+    if (!GoRunner.server) {
       GoRunner.server = new Server({ port: 5001 })
       GoRunner.server.listen()
     }
@@ -35,8 +36,9 @@ export default class GoRunner {
       this.v3Utils = v3Utils
     }
 
+    const watchPath = join(dirname(this.#handlerPath), '**/*.go')
     this.#watcher = chokidar
-      .watch(join(this.#codeDir, '**/*.go'), {
+      .watch(watchPath, {
         persistent: true,
         ignoreInitial: true,
         followSymlinks: false,
