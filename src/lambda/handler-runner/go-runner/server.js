@@ -29,14 +29,14 @@ export class Server {
     this.app.get(
       `/:proc/:fun/${API_VERSION}/runtime/invocation/next`,
       async (req, res) => {
-        console.debug('Worker waiting for function', req.params.fun)
+        // console.debug('Worker waiting for function', req.params.fun)
         const payload = await this.next(req.params.proc, req.params.fun)
-        console.debug(
-          'Sending next payload',
-          payload.context.awsRequestId,
-          req.params.fun,
-          // payload.event,
-        )
+        // console.debug(
+        //   'Sending next payload',
+        //   payload.context.awsRequestId,
+        //   req.params.fun,
+        //   // payload.event,
+        // )
         res.set({
           'Lambda-Runtime-Aws-Request-Id': payload.context.awsRequestId,
           'Lambda-Runtime-Deadline-Ms': payload.deadline,
@@ -56,11 +56,11 @@ export class Server {
     this.app.post(
       `/:proc/:fun/${API_VERSION}/runtime/invocation/:awsRequestId/response`,
       (req, res) => {
-        console.debug(
-          'Received response for',
-          req.params.awsRequestId,
-          req.params.fun,
-        )
+        // console.debug(
+        //   'Received response for',
+        //   req.params.awsRequestId,
+        //   req.params.fun,
+        // )
         this.response(req.params.fun, req.params.awsRequestId, {
           type: 'success',
           data: req.body,
@@ -71,11 +71,11 @@ export class Server {
     this.app.post(
       `/:proc/:fun/${API_VERSION}/runtime/invocation/:awsRequestId/error`,
       (req, res) => {
-        console.debug(
-          'Received error for',
-          req.params.awsRequestId,
-          req.params.fun,
-        )
+        // console.debug(
+        //   'Received error for',
+        //   req.params.awsRequestId,
+        //   req.params.fun,
+        // )
         this.response(req.params.fun, req.params.awsRequestId, {
           type: 'failure',
           error: {
@@ -129,7 +129,7 @@ export class Server {
     )
   }
   listen() {
-    console.debug('Starting runtime server on port:', this.opts.port)
+    // console.debug('Starting runtime server on port:', this.opts.port)
     this.app.listen({
       port: this.opts.port,
     })
@@ -156,7 +156,7 @@ export class Server {
   }
   async drain(opts) {
     const fun = Server.generateFunctionID(opts)
-    console.debug('Draining function', fun)
+    // console.debug('Draining function', fun)
     const pool = this.pool(fun)
     for (const proc of pool.processes) {
       proc.kill()
@@ -181,12 +181,12 @@ export class Server {
     return this.warm[id]
   }
   async trigger(opts) {
-    console.debug('Triggering', opts.function)
+    // console.debug('Triggering', opts.function)
     const pool = this.pool(opts.function.id)
     // Check if invoked before
     if (!this.isWarm(opts.function.id)) {
       this.setWarm(opts.function.id, async () => {
-        console.debug('First build...')
+        // console.debug('First build...')
         const results = await opts.function.build()
         if (results && results.length > 0) {
           return {
@@ -198,7 +198,7 @@ export class Server {
             },
           }
         }
-        console.debug('First build finished')
+        // console.debug('First build finished')
       })
     }
     await this.isWarm(opts.function.id)
@@ -223,7 +223,7 @@ export class Server {
         AWS_LAMBDA_RUNTIME_API: api,
         IS_LOCAL: 'true',
       }
-      console.debug('Spawning', instructions.run)
+      // console.debug('Spawning', instructions.run)
       const proc = spawn(instructions.run.command, instructions.run.args, {
         env,
       })

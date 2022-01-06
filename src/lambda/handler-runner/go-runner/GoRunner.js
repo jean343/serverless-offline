@@ -63,7 +63,6 @@ export default class GoRunner {
   }
 
   runAsync(cwd, cmd) {
-    console.log(cmd)
     const proc = spawn(cmd.command, cmd.args, {
       env: {
         ...cmd.env,
