@@ -158,9 +158,7 @@
     "Fernando Alvarez (https://github.com/jefer590)"
   ],
   "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
+    "hooks": {}
   },
   "lint-staged": {
     "*.js": [
